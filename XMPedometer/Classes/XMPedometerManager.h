@@ -17,11 +17,25 @@
 #endif
 
 typedef NSString * kPedometerIdentier;
+typedef void (^XMPedometerCompletionBlock)(NSNumber *numberOfSteps,
+                                           NSNumber *distance,
+                                           NSNumber *floorsAscended,
+                                           NSNumber *floorsDescended,
+                                           NSNumber *currentPace,
+                                           NSNumber *currentCadence,
+                                           NSNumber *averageActivePace,
+                                           NSError *error);
+
 
 BIM_EXTERN kPedometerIdentier const kPedometerIdentifierIndex;
+BIM_EXTERN kPedometerIdentier const kPedometerIdentifierDate;
 BIM_EXTERN kPedometerIdentier const kPedometerIdentifierNumberOfSteps;
 BIM_EXTERN kPedometerIdentier const kPedometerIdentifierDistance;
-BIM_EXTERN kPedometerIdentier const kPedometerIdentifierDate;
+BIM_EXTERN kPedometerIdentier const kPedometerIdentifierFloorsAscended;
+BIM_EXTERN kPedometerIdentier const kPedometerIdentifierFloorsDescended;
+BIM_EXTERN kPedometerIdentier const kPedometerIdentifierCurrentPace;
+BIM_EXTERN kPedometerIdentier const kPedometerIdentifierCurrentCadence;
+BIM_EXTERN kPedometerIdentier const kPedometerIdentifierAverageActivePace;
 
 
 
@@ -42,7 +56,7 @@ BIM_EXTERN kPedometerIdentier const kPedometerIdentifierDate;
 
  @param handler handler 回调行走步数，行走公里，如果有错误，会回调错误信息, 如果设备不支持计步，会返回错误码-666，否则error为nil 数据回调在子线程
  */
-- (void)xm_startPedometerUpdatesFromTodayWithHandler:(void(^)(NSNumber *numberOfSteps, NSNumber *distance, NSError *error))handler;
+- (void)xm_startPedometerUpdatesFromTodayWithHandler:(XMPedometerCompletionBlock)handler;
 
 
 /*!
@@ -58,7 +72,7 @@ BIM_EXTERN kPedometerIdentier const kPedometerIdentifierDate;
  @param handler 回调行走步数，行走公里，如果有错误，会回调错误信息，如果设备不支持计步，会返回错误码-666，否则error为nil 数据回调在子线程
  */
 - (void)xm_startPedometerUpdatesFromDate:(NSDate *)fromDate
-                             withHandler:(void (^)(NSNumber *numberOfSteps, NSNumber *distance, NSError *error))handler;
+                             withHandler:(XMPedometerCompletionBlock)handler;
 
 #pragma mark - 查询数据
 
@@ -88,7 +102,7 @@ BIM_EXTERN kPedometerIdentier const kPedometerIdentifierDate;
  */
 - (void)xm_queryPedometerDataFromDate:(NSDate *)start
                                toDate:(NSDate *)end
-                          withHandler:(void(^)(NSNumber *numberOfSteps, NSNumber *distance, NSError *error))handler;
+                          withHandler:(XMPedometerCompletionBlock)handler;
 
 @end
 
