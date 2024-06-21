@@ -12,9 +12,14 @@
 #define kCustomErrorDomain @"com.github.ixmwl"
 
 kPedometerIdentier const kPedometerIdentifierIndex = @"kPedometerIdentifierIndex";
+kPedometerIdentier const kPedometerIdentifierDate = @"kPedometerIdentifierDate";
 kPedometerIdentier const kPedometerIdentifierNumberOfSteps = @"kPedometerIdentifierNumberOfSteps";
 kPedometerIdentier const kPedometerIdentifierDistance = @"kPedometerIdentifierDistance";
-kPedometerIdentier const kPedometerIdentifierDate = @"kPedometerIdentifierDate";
+kPedometerIdentier const kPedometerIdentifierFloorsAscended = @"kPedometerIdentifierFloorsAscended";
+kPedometerIdentier const kPedometerIdentifierFloorsDescended = @"kPedometerIdentifierFloorsDescended";
+kPedometerIdentier const kPedometerIdentifierCurrentPace = @"kPedometerIdentifierCurrentPace";
+kPedometerIdentier const kPedometerIdentifierCurrentCadence = @"kPedometerIdentifierCurrentCadence";
+kPedometerIdentier const kPedometerIdentifierAverageActivePace = @"kPedometerIdentifierAverageActivePace";
 
 
 #pragma mark - 计步管理工具类
@@ -50,37 +55,42 @@ static XMPedometerManager *instance = nil;
 {
     self = [super init];
     if (self) {
-        if (@available(iOS 8.0, *)) {
-            if ([CMPedometer isStepCountingAvailable]) {
-                /// 创建计步器对象
-                self.pedometer = [[CMPedometer alloc] init];
-            }
-        } else {
-            // Fallback on earlier versions
-            NSLog(@"");
+        if ([CMPedometer isStepCountingAvailable]) {
+            self.pedometer = [[CMPedometer alloc] init];
         }
     }
     return self;
 }
 
 
-- (void)xm_startPedometerUpdatesFromTodayWithHandler:(void(^)(NSNumber *numberOfSteps, NSNumber *distance, NSError *error))handler {
+- (void)xm_startPedometerUpdatesFromTodayWithHandler:(XMPedometerCompletionBlock)handler {
     [self xm_startPedometerUpdatesFromDate:[NSDate getTodayStartDate] withHandler:handler];
 }
 
-- (void)xm_startPedometerUpdatesFromDate:(NSDate *)fromDate withHandler:(void (^)(NSNumber *numberOfSteps, NSNumber *distance, NSError *error))handler {
+- (void)xm_startPedometerUpdatesFromDate:(NSDate *)fromDate withHandler:(XMPedometerCompletionBlock)handler {
     if (!self.pedometer) {
         NSDictionary *userInfo = @{NSLocalizedDescriptionKey : @"device does not support"};
         NSError *error = [[NSError alloc] initWithDomain:kCustomErrorDomain code:-666 userInfo:userInfo];
-        handler(nil, nil, error);
+        handler(nil, nil, nil, nil, nil, nil, nil, error);
         return;
     }
     [self.pedometer startPedometerUpdatesFromDate:fromDate withHandler:^(CMPedometerData * _Nullable pedometerData, NSError * _Nullable error) {
         if (handler) {
             if (error) {
-                handler(nil, nil, error);
+                handler(nil, nil, nil, nil, nil, nil, nil, error);
             } else {
-                handler(pedometerData.numberOfSteps, @([pedometerData.distance integerValue] / 1000.0), nil);
+                if (@available(iOS 10.0, *)) {
+                    handler(pedometerData.numberOfSteps,
+                            pedometerData.distance,
+                            pedometerData.floorsAscended,
+                            pedometerData.floorsDescended,
+                            pedometerData.currentPace,
+                            pedometerData.currentCadence,
+                            pedometerData.averageActivePace,
+                            nil);
+                } else {
+                    // Fallback on earlier versions
+                }
             }
         }
     }];
@@ -98,25 +108,71 @@ static XMPedometerManager *instance = nil;
     
     for (int i = 0; i < index; i++) {
         if (i == 0) {
-            [self xm_queryPedometerDataFromDate:[NSDate getTodayStartDate] toDate:[NSDate date] withHandler:^(NSNumber *numberOfSteps, NSNumber *distance, NSError *error) {
+            [self xm_queryPedometerDataFromDate:[NSDate getTodayStartDate] toDate:[NSDate date] withHandler:^(NSNumber *numberOfSteps, NSNumber *distance, NSNumber *floorsAscended, NSNumber *floorsDescended, NSNumber *currentPace, NSNumber *currentCadence, NSNumber *averageActivePace, NSError *error) {
                 if (error) {
                     if (handler) {
                         handler(nil, error);
                     }
                 } else {
-                    NSDictionary *infoDict = @{kPedometerIdentifierIndex : @(i), kPedometerIdentifierNumberOfSteps : numberOfSteps, kPedometerIdentifierDistance : distance, kPedometerIdentifierDate : [NSDate nowDateAtZoneWithDate:[NSDate getTodayStartDate]]};
-                    [arr addObject:infoDict];
+            
+                    NSMutableDictionary *infoDict = [[NSMutableDictionary alloc] initWithDictionary:@{kPedometerIdentifierIndex : @(i),
+                                                                                                      kPedometerIdentifierDate : [NSDate nowDateAtZoneWithDate:[NSDate getTodayStartDate]]}];
+                    if(numberOfSteps) {
+                        [infoDict setValue:numberOfSteps forKey:kPedometerIdentifierNumberOfSteps];
+                    }
+                    if(distance) {
+                        [infoDict setValue:distance forKey:kPedometerIdentifierDistance];
+                    }
+                    if(floorsAscended) {
+                        [infoDict setValue:floorsAscended forKey:kPedometerIdentifierFloorsAscended];
+                    }
+                    if(floorsDescended) {
+                        [infoDict setValue:floorsDescended forKey:kPedometerIdentifierFloorsDescended];
+                    }
+                    if(currentPace) {
+                        [infoDict setValue:currentPace forKey:kPedometerIdentifierCurrentPace];
+                    }
+                    if(currentCadence) {
+                        [infoDict setValue:currentCadence forKey:kPedometerIdentifierCurrentCadence];
+                    }
+                    if(averageActivePace) {
+                        [infoDict setValue:averageActivePace forKey:kPedometerIdentifierAverageActivePace];
+                    }
+                    [arr addObject:[infoDict copy]];
                 }
             }];
+            
         } else {
-            [self xm_queryPedometerDataFromDate:[NSDate getDateBeforeTodayAtIndex:i] toDate:[NSDate getDateBeforeTodayAtIndex:i-1] withHandler:^(NSNumber *numberOfSteps, NSNumber *distance, NSError *error) {
+            [self xm_queryPedometerDataFromDate:[NSDate getDateBeforeTodayAtIndex:i] toDate:[NSDate getDateBeforeTodayAtIndex:i-1] withHandler:^(NSNumber *numberOfSteps, NSNumber *distance, NSNumber *floorsAscended, NSNumber *floorsDescended, NSNumber *currentPace, NSNumber *currentCadence, NSNumber *averageActivePace, NSError *error) {
                 if (error) {
                     if (handler) {
                         handler(nil, error);
                     }
                 } else {
-                    NSDictionary *infoDict = @{kPedometerIdentifierIndex : @(i), kPedometerIdentifierNumberOfSteps : numberOfSteps, kPedometerIdentifierDistance : distance, kPedometerIdentifierDate : [NSDate nowDateAtZoneWithDate:[NSDate getDateBeforeTodayAtIndex:i]]};
-                    [arr addObject:infoDict];
+                    NSMutableDictionary *infoDict = [[NSMutableDictionary alloc] initWithDictionary:@{kPedometerIdentifierIndex : @(i),
+                                                                                                      kPedometerIdentifierDate : [NSDate nowDateAtZoneWithDate:[NSDate getDateBeforeTodayAtIndex:i]]}];
+                    if(numberOfSteps) {
+                        [infoDict setValue:numberOfSteps forKey:kPedometerIdentifierNumberOfSteps];
+                    }
+                    if(distance) {
+                        [infoDict setValue:distance forKey:kPedometerIdentifierDistance];
+                    }
+                    if(floorsAscended) {
+                        [infoDict setValue:floorsAscended forKey:kPedometerIdentifierFloorsAscended];
+                    }
+                    if(floorsDescended) {
+                        [infoDict setValue:floorsDescended forKey:kPedometerIdentifierFloorsDescended];
+                    }
+                    if(currentPace) {
+                        [infoDict setValue:currentPace forKey:kPedometerIdentifierCurrentPace];
+                    }
+                    if(currentCadence) {
+                        [infoDict setValue:currentCadence forKey:kPedometerIdentifierCurrentCadence];
+                    }
+                    if(averageActivePace) {
+                        [infoDict setValue:averageActivePace forKey:kPedometerIdentifierAverageActivePace];
+                    }
+                    [arr addObject:[infoDict copy]];
                 }
                 if (arr.count == index) {
                     if (handler) {
@@ -129,19 +185,34 @@ static XMPedometerManager *instance = nil;
     
 }
 
-- (void)xm_queryPedometerDataFromDate:(NSDate *)start toDate:(NSDate *)end withHandler:(void(^)(NSNumber *numberOfSteps, NSNumber *distance, NSError *error))handler {
+- (void)xm_queryPedometerDataFromDate:(NSDate *)start toDate:(NSDate *)end withHandler:(XMPedometerCompletionBlock)handler {
     if (!self.pedometer) {
         NSDictionary *userInfo = @{NSLocalizedDescriptionKey : @"device does not support"};
         NSError *error = [[NSError alloc] initWithDomain:kCustomErrorDomain code:-666 userInfo:userInfo];
-        handler(nil, nil, error);
+        handler(nil, nil, nil, nil, nil, nil, nil, error);
         return;
     }
     [self.pedometer queryPedometerDataFromDate:start toDate:end withHandler:^(CMPedometerData * _Nullable pedometerData, NSError * _Nullable error) {
         if (handler) {
             if (error) {
-                handler(nil, nil, error);
+                handler(nil, nil, nil, nil, nil, nil, nil, error);
             } else {
-                handler(pedometerData.numberOfSteps, @([pedometerData.distance integerValue] / 1000.0), nil);
+                if (@available(iOS 9.0, *)) {
+                    if (@available(iOS 10.0, *)) {
+                        handler(pedometerData.numberOfSteps,
+                                pedometerData.distance,
+                                pedometerData.floorsAscended,
+                                pedometerData.floorsDescended,
+                                pedometerData.currentPace,
+                                pedometerData.currentCadence,
+                                pedometerData.averageActivePace,
+                                nil);
+                    } else {
+                        // Fallback on earlier versions
+                    }
+                } else {
+                    // Fallback on earlier versions
+                }
             }
         }
     }];
