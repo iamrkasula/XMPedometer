@@ -9,7 +9,7 @@
 Pod::Spec.new do |s|
   s.name             = 'XMPedometer'
   s.version          = '1.0.0'
-  s.summary          = '一个基于CMPedometer实现的计步器,可以统计当天或者近7天步数以及里程.'
+  s.summary          = 'CMPedometer'
 
 # This description is used to generate tags and improve search results.
 #   * Think: What does it do? Why did you write it? What is the focus?
@@ -21,14 +21,14 @@ Pod::Spec.new do |s|
                         一个基于CMPedometer实现的计步器,可以统计当天或者近7天步数以及里程.
                        DESC
 
-  s.homepage         = 'https://github.com/ixmwl/XMPedometer'
+  s.homepage         = 'https://github.com/iamrkasula/XMPedometer'
   # s.screenshots     = 'www.example.com/screenshots_1', 'www.example.com/screenshots_2'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
-  s.author           = { 'ixmwl' => 'ixmwl510@163.com' }
-  s.source           = { :git => 'https://github.com/ixmwl/XMPedometer.git', :tag => s.version.to_s }
+  s.author           = { 'iamrkasula' => 'iamrkasula@gmail.com' }
+  s.source           = { :git => 'https://github.com/iamrkasula/XMPedometer.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
-  s.ios.deployment_target = '8.0'
+  s.ios.deployment_target = '13.0'
 
   s.source_files = 'XMPedometer/Classes/**/*'
   
